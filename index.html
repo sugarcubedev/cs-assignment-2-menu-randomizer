@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Deadline Buddy - 캠퍼스 마감 관리 웹앱</title>
+  <style>
+    :root {
+      --bg: #f5f7fb;
+      --card: rgba(255, 255, 255, 0.88);
+      --card-solid: #ffffff;
+      --text: #162033;
+      --muted: #687387;
+      --line: #dfe6f3;
+      --primary: #4f46e5;
+      --primary2: #06b6d4;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+      --success: #10b981;
+      --shadow: 0 20px 60px rgba(30, 41, 59, 0.12);
+      --radius: 24px;
+    }
+
+    body.dark {
+      --bg: #0d1224;
+      --card: rgba(21, 29, 52, 0.84);
+      --card-solid: #151d34;
+      --text: #edf2ff;
+      --muted: #a7b1c7;
+      --line: #2b3656;
+      --shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Apple SD Gothic Neo", Arial, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 8% 5%, rgba(79,70,229,0.23), transparent 28%),
+        radial-gradient(circle at 90% 12%, rgba(6,182,212,0.20), transparent 32%),
+        linear-gradient(135deg, var(--bg), var(--bg));
+      min-height: 100vh;
+      transition: background 0.25s ease, color 0.25s ease;
+    }
+
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+
+    .app-shell {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 26px 0 46px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      border-radius: 16px;
+      color: white;
+      font-size: 25px;
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      box-shadow: var(--shadow);
+    }
+
+    .brand h1 { margin: 0; font-size: clamp(24px, 3vw, 34px); letter-spacing: -0.04em; }
+    .brand p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+    .top-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: flex-end; }
+
+    .pill, .ghost-btn, .primary-btn, .danger-btn, .success-btn {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 10px 14px;
+      background: var(--card);
+      color: var(--text);
+      backdrop-filter: blur(18px);
+      transition: 0.2s ease;
+    }
+
+    .ghost-btn:hover, .pill:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(79,70,229,0.12); }
+    .primary-btn { border: none; color: white; background: linear-gradient(135deg, var(--primary), var(--primary2)); box-shadow: 0 12px 24px rgba(79,70,229,0.23); }
+    .primary-btn:hover, .success-btn:hover, .danger-btn:hover { transform: translateY(-1px); filter: brightness(1.04); }
+    .success-btn { border: none; color: white; background: var(--success); }
+    .danger-btn { border: none; color: white; background: var(--danger); }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .hero-card, .panel, .stat, .task-card, .plan-card, .timer-card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+    }
+
+    .hero-card { padding: 30px; position: relative; overflow: hidden; }
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      right: -70px;
+      top: -80px;
+      width: 220px;
+      height: 220px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(79,70,229,0.18), rgba(6,182,212,0.12));
+    }
+
+    .hero-card h2 { margin: 0 0 12px; font-size: clamp(28px, 4vw, 46px); line-height: 1.08; letter-spacing: -0.055em; }
+    .hero-card p { margin: 0; color: var(--muted); line-height: 1.7; max-width: 720px; }
+
+    .hero-badges { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 22px; }
+    .badge {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      border-radius: 999px;
+      padding: 7px 11px;
+      color: var(--text);
+      background: rgba(79,70,229,0.10);
+      border: 1px solid rgba(79,70,229,0.16);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .today-card { padding: 22px; display: grid; align-content: space-between; gap: 16px; }
+    .today-card .date { color: var(--muted); font-size: 14px; }
+    .today-card .big-score { font-size: 58px; font-weight: 900; letter-spacing: -0.06em; margin: 0; }
+    .today-card .score-label { color: var(--muted); margin-top: -12px; }
+
+    .nav {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      margin: 18px 0;
+      position: sticky;
+      top: 10px;
+      z-index: 10;
+    }
+
+    .nav button {
+      border: 1px solid var(--line);
+      background: var(--card);
+      color: var(--muted);
+      border-radius: 18px;
+      padding: 14px 10px;
+      font-weight: 800;
+      backdrop-filter: blur(20px);
+    }
+
+    .nav button.active {
+      color: white;
+      border: none;
+      background: linear-gradient(135deg, var(--primary), var(--primary2));
+      box-shadow: 0 14px 26px rgba(79,70,229,0.22);
+    }
+
+    .page { display: none; animation: fadeUp 0.25s ease both; }
+    .page.active { display: block; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 14px; }
+    .grid-2 { display: grid; grid-template-columns: 0.95fr 1.05fr; gap: 14px; }
+
+    .stat { padding: 18px; }
+    .stat .value { font-size: 34px; font-weight: 900; letter-spacing: -0.05em; margin: 6px 0 0; }
+    .stat .label { color: var(--muted); font-size: 14px; }
+
+    .panel { padding: 22px; }
+    .panel h3 { margin: 0 0 14px; font-size: 20px; letter-spacing: -0.035em; }
+    .panel-sub { color: var(--muted); margin: -6px 0 18px; line-height: 1.6; }
+
+    .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .form-row { display: grid; gap: 7px; }
+    .form-row.full { grid-column: 1 / -1; }
+    label { font-size: 13px; font-weight: 800; color: var(--muted); }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: var(--card-solid);
+      color: var(--text);
+      padding: 12px 14px;
+      outline: none;
+      transition: 0.2s ease;
+    }
+
+    input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(79,70,229,0.12); }
+    textarea { min-height: 96px; resize: vertical; }
+
+    .task-list { display: grid; gap: 10px; }
+    .task-card { padding: 14px; display: grid; gap: 10px; }
+    .task-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+    .task-title { margin: 0; font-weight: 900; line-height: 1.35; }
+    .task-title.done { text-decoration: line-through; color: var(--muted); }
+    .task-meta { display: flex; gap: 8px; flex-wrap: wrap; color: var(--muted); font-size: 13px; }
+    .tag { padding: 5px 8px; border-radius: 999px; background: rgba(6,182,212,0.10); border: 1px solid rgba(6,182,212,0.18); font-size: 12px; font-weight: 800; }
+    .priority { height: 9px; background: rgba(127,127,127,0.12); border-radius: 999px; overflow: hidden; }
+    .priority > span { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, var(--success), var(--warning), var(--danger)); }
+    .mini-actions { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .icon-btn {
+      border: 1px solid var(--line);
+      color: var(--text);
+      background: var(--card-solid);
+      border-radius: 12px;
+      padding: 7px 9px;
+      font-size: 13px;
+    }
+
+    .empty {
+      border: 1px dashed var(--line);
+      border-radius: 20px;
+      padding: 28px 18px;
+      text-align: center;
+      color: var(--muted);
+      background: rgba(127,127,127,0.05);
+    }
+
+    .timeline { display: grid; gap: 10px; }
+    .plan-card { padding: 16px; border-left: 8px solid var(--primary); }
+    .plan-card.break { border-left-color: var(--success); }
+    .plan-card strong { display: block; margin-bottom: 5px; }
+    .plan-card p { margin: 0; color: var(--muted); line-height: 1.55; }
+
+    .month-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .month-title { margin: 0; font-size: 24px; letter-spacing: -0.04em; }
+    .month-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .month-picker { width: 170px; }
+    .month-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 14px; }
+    .month-stat {
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--card-solid);
+    }
+    .month-stat .number { display: block; margin-top: 4px; font-size: 26px; font-weight: 900; letter-spacing: -0.05em; }
+    .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+    .weekday {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 900;
+      padding: 6px 0;
+    }
+    .day-cell {
+      min-height: 108px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: var(--card-solid);
+      padding: 9px;
+      display: grid;
+      align-content: start;
+      gap: 6px;
+    }
+    .day-cell.muted { opacity: 0.34; }
+    .day-cell.today { outline: 3px solid rgba(79,70,229,0.20); }
+    .day-number { font-size: 12px; font-weight: 900; color: var(--muted); }
+    .day-chip {
+      border: 1px solid rgba(79,70,229,0.16);
+      background: rgba(79,70,229,0.08);
+      color: var(--text);
+      border-radius: 10px;
+      padding: 5px 6px;
+      font-size: 11px;
+      line-height: 1.25;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .day-chip.done { text-decoration: line-through; color: var(--muted); background: rgba(16,185,129,0.10); }
+    .month-list { display: grid; gap: 10px; }
+
+    .timer-layout { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 14px; }
+    .timer-card { padding: 24px; text-align: center; }
+    .timer-circle {
+      width: min(280px, 70vw);
+      aspect-ratio: 1;
+      margin: 10px auto 18px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--primary) var(--timer-progress, 0%), rgba(127,127,127,0.14) 0);
+      box-shadow: inset 0 0 0 14px rgba(255,255,255,0.18), var(--shadow);
+    }
+    .timer-inner {
+      width: 77%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: var(--card-solid);
+      border: 1px solid var(--line);
+    }
+    .timer-time { font-size: clamp(44px, 7vw, 66px); font-weight: 900; letter-spacing: -0.06em; }
+    .timer-mode { color: var(--muted); font-weight: 800; margin-top: -8px; }
+
+    .tip-box {
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: linear-gradient(135deg, rgba(79,70,229,0.09), rgba(6,182,212,0.08));
+      line-height: 1.65;
+    }
+
+    .report-section { display: grid; gap: 14px; }
+    .report-item {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: var(--card-solid);
+    }
+    .report-item h4 { margin: 0 0 8px; }
+    .report-item p, .report-item li { color: var(--muted); line-height: 1.7; }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(30px);
+      background: #111827;
+      color: white;
+      padding: 12px 18px;
+      border-radius: 999px;
+      opacity: 0;
+      pointer-events: none;
+      transition: 0.25s ease;
+      z-index: 100;
+      box-shadow: 0 14px 28px rgba(0,0,0,0.25);
+      font-weight: 800;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    .footer-note { color: var(--muted); text-align: center; margin-top: 28px; font-size: 13px; }
+
+    @media (max-width: 920px) {
+      .hero, .grid-2, .timer-layout { grid-template-columns: 1fr; }
+      .grid-3 { grid-template-columns: 1fr; }
+      .nav { grid-template-columns: repeat(2, 1fr); position: static; }
+      .form-grid { grid-template-columns: 1fr; }
+      .month-stats { grid-template-columns: repeat(2, 1fr); }
+      .calendar-grid { gap: 6px; }
+      .day-cell { min-height: 92px; border-radius: 14px; padding: 7px; }
+      .day-chip { font-size: 10px; }
+      .topbar { align-items: flex-start; flex-direction: column; }
+      .top-actions { justify-content: flex-start; }
+    }
+
+    @media (max-width: 520px) {
+      .app-shell { width: min(100% - 20px, 1180px); padding-top: 16px; }
+      .hero-card, .panel { padding: 18px; }
+      .nav { grid-template-columns: 1fr; }
+      .task-head { flex-direction: column; }
+      .month-stats { grid-template-columns: 1fr; }
+      .calendar-grid { grid-template-columns: repeat(2, 1fr); }
+      .weekday { display: none; }
+      .day-cell.muted { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">⏰</div>
+        <div>
+          <h1>Deadline Buddy</h1>
+          <p>과제·시험·발표를 한 번에 정리하는 캠퍼스 마감 관리 목업</p>
+        </div>
+      </div>
+      <div class="top-actions">
+        <span class="pill" id="todayText">오늘</span>
+        <button class="ghost-btn" id="themeBtn" type="button">🌙 다크모드</button>
+        <button class="danger-btn" id="resetBtn" type="button">초기화</button>
+      </div>
+    </header>
+
+    <section class="hero">
+      <div class="hero-card">
+        <h2>마감이 가까운 일부터<br />자동으로 우선순위를 잡아줍니다.</h2>
+        <p>
+          학생들이 여러 수업의 과제, 시험, 발표 일정을 동시에 관리할 때 생기는 혼란을 줄이기 위한 웹앱입니다.
+          사용자가 할 일을 입력하면 마감일·중요도·예상 소요시간을 바탕으로 오늘의 우선순위와 학습 계획을 추천합니다.
+        </p>
+        <div class="hero-badges">
+          <span class="badge">✅ 할 일 입력</span>
+          <span class="badge">📊 우선순위 계산</span>
+          <span class="badge">📆 월별 일정 보기</span>
+          <span class="badge">🧠 AI 스타일 계획 추천</span>
+          <span class="badge">🍅 집중 타이머</span>
+        </div>
+      </div>
+      <div class="hero-card today-card">
+        <div>
+          <div class="date" id="heroDate">2026년 1학기</div>
+          <p class="big-score" id="stressScore">0</p>
+          <div class="score-label">오늘의 마감 압박 지수</div>
+        </div>
+        <div class="tip-box" id="dailyTip">오늘의 추천 행동이 여기에 표시됩니다.</div>
+      </div>
+    </section>
+
+    <nav class="nav" aria-label="주요 화면 이동">
+      <button class="active" data-page="dashboard" type="button">1. 대시보드</button>
+      <button data-page="tasks" type="button">2. 할 일 등록</button>
+      <button data-page="monthly" type="button">3. 월별 보기</button>
+      <button data-page="planner" type="button">4. 계획 추천</button>
+      <button data-page="focus" type="button">5. 집중 타이머</button>
+    </nav>
+
+    <main>
+      <section class="page active" id="dashboard">
+        <div class="grid-3">
+          <div class="stat"><div class="label">남은 할 일</div><div class="value" id="statTodo">0</div></div>
+          <div class="stat"><div class="label">3일 이내 마감</div><div class="value" id="statUrgent">0</div></div>
+          <div class="stat"><div class="label">완료율</div><div class="value" id="statDone">0%</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="panel">
+            <h3>🔥 오늘 먼저 처리할 TOP 3</h3>
+            <p class="panel-sub">마감일이 가깝고 중요도가 높은 항목을 자동으로 정렬합니다.</p>
+            <div class="task-list" id="topTasks"></div>
+          </div>
+          <div class="panel">
+            <h3>📅 전체 일정 보드</h3>
+            <p class="panel-sub">완료 체크를 하면 완료율과 추천 계획이 즉시 갱신됩니다.</p>
+            <div class="task-list" id="allTasks"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="tasks">
+        <div class="grid-2">
+          <div class="panel">
+            <h3>➕ 새 할 일 등록</h3>
+            <p class="panel-sub">복잡한 회원가입 없이 브라우저에 임시 저장됩니다. 과제용 목업이므로 DB 없이 localStorage를 사용합니다.</p>
+            <form id="taskForm" class="form-grid">
+              <div class="form-row full">
+                <label for="titleInput">할 일 제목</label>
+                <input id="titleInput" required placeholder="예: 컴퓨터 개론 웹앱 보고서 작성" />
+              </div>
+              <div class="form-row">
+                <label for="categoryInput">분류</label>
+                <select id="categoryInput">
+                  <option>과제</option>
+                  <option>시험</option>
+                  <option>발표</option>
+                  <option>팀플</option>
+                  <option>개인 일정</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="deadlineInput">마감일</label>
+                <input id="deadlineInput" type="date" required />
+              </div>
+              <div class="form-row">
+                <label for="importanceInput">중요도: <span id="importanceLabel">3</span></label>
+                <input id="importanceInput" type="range" min="1" max="5" value="3" />
+              </div>
+              <div class="form-row">
+                <label for="minutesInput">예상 소요시간(분)</label>
+                <input id="minutesInput" type="number" min="10" step="5" value="60" />
+              </div>
+              <div class="form-row full">
+                <label for="memoInput">메모</label>
+                <textarea id="memoInput" placeholder="예: 자료 조사 20분, 화면 캡처 10분, 보고서 30분"></textarea>
+              </div>
+              <div class="form-row full">
+                <button class="primary-btn" type="submit">할 일 추가하기</button>
+              </div>
+            </form>
+          </div>
+          <div class="panel">
+            <h3>🧮 우선순위 계산 방식</h3>
+            <div class="report-section">
+              <div class="report-item">
+                <h4>1) 마감 임박도</h4>
+                <p>오늘과 마감일의 차이를 계산해 가까울수록 높은 점수를 부여합니다.</p>
+              </div>
+              <div class="report-item">
+                <h4>2) 중요도</h4>
+                <p>사용자가 선택한 중요도 1~5를 점수에 반영합니다.</p>
+              </div>
+              <div class="report-item">
+                <h4>3) 소요시간</h4>
+                <p>짧게 끝낼 수 있는 일은 오늘 계획에 먼저 배치하여 실천 가능성을 높입니다.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="monthly">
+        <div class="panel">
+          <div class="month-toolbar">
+            <div>
+              <h3 class="month-title" id="monthTitle">월별 보기</h3>
+              <p class="panel-sub" style="margin:6px 0 0;">등록한 할 일을 마감일 기준으로 달력과 목록에서 확인합니다.</p>
+            </div>
+            <div class="month-controls">
+              <button class="ghost-btn" id="prevMonthBtn" type="button">← 이전 달</button>
+              <input class="month-picker" id="monthPicker" type="month" />
+              <button class="ghost-btn" id="nextMonthBtn" type="button">다음 달 →</button>
+            </div>
+          </div>
+
+          <div class="month-stats">
+            <div class="month-stat"><label>이번 달 전체</label><span class="number" id="monthTotal">0</span></div>
+            <div class="month-stat"><label>남은 일</label><span class="number" id="monthTodo">0</span></div>
+            <div class="month-stat"><label>완료</label><span class="number" id="monthDone">0</span></div>
+            <div class="month-stat"><label>가장 급한 우선순위</label><span class="number" id="monthMaxScore">0</span></div>
+          </div>
+
+          <div class="calendar-grid" id="monthCalendar"></div>
+        </div>
+
+        <div class="panel" style="margin-top:14px;">
+          <h3>📌 이번 달 할 일 목록</h3>
+          <p class="panel-sub">완료/삭제 버튼을 누르면 대시보드와 월별 보기 모두 즉시 갱신됩니다.</p>
+          <div class="month-list" id="monthTaskList"></div>
+        </div>
+      </section>
+
+      <section class="page" id="planner">
+        <div class="grid-2">
+          <div class="panel">
+            <h3>🧠 AI 스타일 오늘 계획 추천</h3>
+            <p class="panel-sub">실제 AI API를 호출하지 않고, 과제 목업에 맞게 규칙 기반 추천 로직으로 동작합니다.</p>
+            <div class="form-grid">
+              <div class="form-row">
+                <label for="availableInput">오늘 확보 가능한 시간</label>
+                <select id="availableInput">
+                  <option value="30">30분</option>
+                  <option value="60">1시간</option>
+                  <option value="90" selected>1시간 30분</option>
+                  <option value="120">2시간</option>
+                  <option value="180">3시간</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label for="energyInput">현재 컨디션</label>
+                <select id="energyInput">
+                  <option value="low">낮음 - 쉬운 일부터</option>
+                  <option value="normal" selected>보통 - 균형 있게</option>
+                  <option value="high">좋음 - 어려운 일 먼저</option>
+                </select>
+              </div>
+              <div class="form-row full">
+                <button class="primary-btn" id="makePlanBtn" type="button">오늘 계획 생성</button>
+              </div>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>📌 추천 계획 결과</h3>
+            <div class="timeline" id="planResult"></div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
+              <button class="ghost-btn" id="copyPlanBtn" type="button">계획 복사</button>
+              <button class="ghost-btn" id="downloadPlanBtn" type="button">텍스트 저장</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="page" id="focus">
+        <div class="timer-layout">
+          <div class="timer-card">
+            <h3>🍅 포커스 타이머</h3>
+            <div class="timer-circle" id="timerCircle">
+              <div class="timer-inner">
+                <div>
+                  <div class="timer-time" id="timerText">25:00</div>
+                  <div class="timer-mode" id="timerMode">집중 모드</div>
+                </div>
+              </div>
+            </div>
+            <div class="mini-actions" style="justify-content:center;">
+              <button class="primary-btn" id="startTimerBtn" type="button">시작</button>
+              <button class="ghost-btn" id="pauseTimerBtn" type="button">일시정지</button>
+              <button class="ghost-btn" id="resetTimerBtn" type="button">리셋</button>
+              <button class="success-btn" id="completeFocusBtn" type="button">집중 완료</button>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>🎯 현재 집중할 일</h3>
+            <p class="panel-sub">집중할 할 일을 선택하면 완료 처리와 연동됩니다.</p>
+            <div class="form-row">
+              <label for="focusTaskSelect">집중 대상</label>
+              <select id="focusTaskSelect"></select>
+            </div>
+            <div class="form-grid" style="margin-top:14px;">
+              <div class="form-row">
+                <label for="focusMinutesInput">집중 시간</label>
+                <input id="focusMinutesInput" type="number" min="5" max="90" value="25" />
+              </div>
+              <div class="form-row">
+                <label for="breakMinutesInput">휴식 시간</label>
+                <input id="breakMinutesInput" type="number" min="1" max="30" value="5" />
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; margin:14px 0;">
+              <button class="ghost-btn" id="applyTimerBtn" type="button">시간 적용</button>
+              <button class="ghost-btn" id="breakTipBtn" type="button">휴식 추천</button>
+            </div>
+            <div class="tip-box" id="breakTip">25분 집중 후 5분 휴식을 추천합니다.</div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <p class="footer-note">Computer Introduction Assignment 2 · 월별 일정 보기 포함 · HTML/CSS/JavaScript</p>
+  </div>
+
+  <div class="toast" id="toast">완료</div>
+
+  <script>
+    const $ = (selector) => document.querySelector(selector);
+    const $$ = (selector) => [...document.querySelectorAll(selector)];
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dateToInput = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    };
+    const addDays = (n) => {
+      const d = new Date(today);
+      d.setDate(d.getDate() + n);
+      return dateToInput(d);
+    };
+
+    const defaultTasks = [
+      { id: crypto.randomUUID(), title: "컴퓨터 개론 웹앱 과제 보고서 작성", category: "과제", deadline: addDays(2), importance: 5, minutes: 90, memo: "스크린샷과 배포 링크 정리", done: false },
+      { id: crypto.randomUUID(), title: "영어 발표 자료 1차 정리", category: "발표", deadline: addDays(4), importance: 4, minutes: 60, memo: "목차와 핵심 문장 먼저 작성", done: false },
+      { id: crypto.randomUUID(), title: "수학 퀴즈 복습", category: "시험", deadline: addDays(1), importance: 4, minutes: 45, memo: "틀린 문제 중심으로 복습", done: false },
+      { id: crypto.randomUUID(), title: "팀플 회의 안건 정리", category: "팀플", deadline: addDays(6), importance: 3, minutes: 35, memo: "역할 분담표 작성", done: false }
+    ];
+
+    let tasks = JSON.parse(localStorage.getItem("deadlineBuddyTasks") || "null") || defaultTasks;
+    let theme = localStorage.getItem("deadlineBuddyTheme") || "light";
+    let currentPlanText = "";
+    let currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+    let timer = {
+      total: 25 * 60,
+      remaining: 25 * 60,
+      focusMin: 25,
+      breakMin: 5,
+      mode: "focus",
+      interval: null,
+      running: false
+    };
+
+    const saveTasks = () => localStorage.setItem("deadlineBuddyTasks", JSON.stringify(tasks));
+    const saveTheme = () => localStorage.setItem("deadlineBuddyTheme", theme);
+
+    const showToast = (message) => {
+      const toast = $("#toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 1700);
+    };
+
+    const daysLeft = (deadline) => {
+      const d = new Date(deadline + "T00:00:00");
+      return Math.ceil((d - today) / (1000 * 60 * 60 * 24));
+    };
+
+    const priorityScore = (task) => {
+      const days = daysLeft(task.deadline);
+      const urgency = days < 0 ? 100 : Math.max(0, 100 - days * 14);
+      const importance = Number(task.importance) * 18;
+      const shortBonus = Math.max(0, 20 - Number(task.minutes) / 8);
+      return Math.min(100, Math.round(urgency * 0.52 + importance * 0.38 + shortBonus));
+    };
+
+    const scoreLabel = (score) => {
+      if (score >= 80) return "매우 급함";
+      if (score >= 60) return "주의 필요";
+      if (score >= 40) return "보통";
+      return "여유 있음";
+    };
+
+    const deadlineText = (task) => {
+      const d = daysLeft(task.deadline);
+      if (d < 0) return `${Math.abs(d)}일 지남`;
+      if (d === 0) return "오늘 마감";
+      if (d === 1) return "내일 마감";
+      return `${d}일 남음`;
+    };
+
+    const sortedTasks = () => [...tasks].sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return priorityScore(b) - priorityScore(a);
+    });
+
+    const renderTaskCard = (task, compact = false) => {
+      const score = priorityScore(task);
+      return `
+        <article class="task-card">
+          <div class="task-head">
+            <div>
+              <p class="task-title ${task.done ? "done" : ""}">${escapeHTML(task.title)}</p>
+              <div class="task-meta">
+                <span class="tag">${escapeHTML(task.category)}</span>
+                <span>⏳ ${deadlineText(task)}</span>
+                <span>⭐ 중요도 ${task.importance}</span>
+                <span>⏱ ${task.minutes}분</span>
+              </div>
+            </div>
+            <div class="mini-actions">
+              <button class="icon-btn" data-action="toggle" data-id="${task.id}" type="button">${task.done ? "↩ 되돌리기" : "✓ 완료"}</button>
+              ${compact ? "" : `<button class="icon-btn" data-action="delete" data-id="${task.id}" type="button">삭제</button>`}
+            </div>
+          </div>
+          <div class="priority" title="우선순위 ${score}점"><span style="width:${score}%;"></span></div>
+          <div class="task-meta"><strong>${score}점 · ${scoreLabel(score)}</strong>${task.memo ? ` · ${escapeHTML(task.memo)}` : ""}</div>
+        </article>`;
+    };
+
+    const escapeHTML = (str) => String(str || "").replace(/[&<>'"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;","'":"&#39;","\"":"&quot;"}[c]));
+
+
+    const monthInputValue = (date) => {
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      return `${y}-${m}`;
+    };
+
+    const setCurrentMonthFromInput = (value) => {
+      if (!value) return;
+      const [year, month] = value.split("-").map(Number);
+      currentMonth = new Date(year, month - 1, 1);
+    };
+
+    const tasksInCurrentMonth = () => {
+      const key = monthInputValue(currentMonth);
+      return sortedTasks()
+        .filter(t => String(t.deadline || "").startsWith(key))
+        .sort((a, b) => a.deadline.localeCompare(b.deadline) || priorityScore(b) - priorityScore(a));
+    };
+
+    const renderMonthlyView = () => {
+      const calendar = $("#monthCalendar");
+      if (!calendar) return;
+
+      const year = currentMonth.getFullYear();
+      const month = currentMonth.getMonth();
+      const key = monthInputValue(currentMonth);
+      const monthTasks = tasksInCurrentMonth();
+      const todo = monthTasks.filter(t => !t.done);
+      const done = monthTasks.filter(t => t.done);
+      const maxScore = todo.length ? Math.max(...todo.map(priorityScore)) : 0;
+
+      $("#monthTitle").textContent = currentMonth.toLocaleDateString("ko-KR", { year: "numeric", month: "long" });
+      $("#monthPicker").value = key;
+      $("#monthTotal").textContent = monthTasks.length;
+      $("#monthTodo").textContent = todo.length;
+      $("#monthDone").textContent = done.length;
+      $("#monthMaxScore").textContent = maxScore;
+
+      const byDate = monthTasks.reduce((acc, task) => {
+        acc[task.deadline] = acc[task.deadline] || [];
+        acc[task.deadline].push(task);
+        return acc;
+      }, {});
+
+      const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+      const firstDay = new Date(year, month, 1).getDay();
+      const lastDate = new Date(year, month + 1, 0).getDate();
+      const prevLastDate = new Date(year, month, 0).getDate();
+      const totalCells = Math.ceil((firstDay + lastDate) / 7) * 7;
+      let html = weekdays.map(day => `<div class="weekday">${day}</div>`).join("");
+
+      for (let i = 0; i < totalCells; i++) {
+        const dayNumber = i - firstDay + 1;
+        const isCurrent = dayNumber >= 1 && dayNumber <= lastDate;
+        const shownDay = isCurrent ? dayNumber : (dayNumber < 1 ? prevLastDate + dayNumber : dayNumber - lastDate);
+        const dateKey = isCurrent ? `${key}-${String(dayNumber).padStart(2, "0")}` : "";
+        const dayTasks = isCurrent ? (byDate[dateKey] || []) : [];
+        const isToday = isCurrent && dateKey === dateToInput(today);
+        const chips = dayTasks.slice(0, 3).map(task => `
+          <div class="day-chip ${task.done ? "done" : ""}" title="${escapeHTML(task.title)}">
+            ${task.done ? "✓" : "•"} ${escapeHTML(task.title)}
+          </div>
+        `).join("");
+        const more = dayTasks.length > 3 ? `<div class="day-chip">+${dayTasks.length - 3}개 더 있음</div>` : "";
+        html += `
+          <div class="day-cell ${isCurrent ? "" : "muted"} ${isToday ? "today" : ""}">
+            <div class="day-number">${shownDay}</div>
+            ${chips}${more}
+          </div>
+        `;
+      }
+      calendar.innerHTML = html;
+
+      $("#monthTaskList").innerHTML = monthTasks.length
+        ? monthTasks.map(t => renderTaskCard(t)).join("")
+        : `<div class="empty">이 달에 등록된 할 일이 없습니다. 할 일 등록 탭에서 마감일을 선택해 추가해 보세요.</div>`;
+    };
+
+    const renderTasks = () => {
+      const todo = tasks.filter(t => !t.done);
+      const urgent = todo.filter(t => daysLeft(t.deadline) <= 3).length;
+      const doneCount = tasks.filter(t => t.done).length;
+      const donePercent = tasks.length ? Math.round(doneCount / tasks.length * 100) : 0;
+
+      $("#statTodo").textContent = todo.length;
+      $("#statUrgent").textContent = urgent;
+      $("#statDone").textContent = `${donePercent}%`;
+
+      const avgScore = todo.length ? Math.round(todo.reduce((sum, t) => sum + priorityScore(t), 0) / todo.length) : 0;
+      $("#stressScore").textContent = avgScore;
+
+      const first = sortedTasks().find(t => !t.done);
+      $("#dailyTip").textContent = first
+        ? `오늘은 '${first.title}'을 먼저 25분만 시작해 보세요. 시작 장벽을 낮추는 것이 가장 중요합니다.`
+        : "모든 일정이 완료되었습니다. 오늘은 가볍게 복습하거나 휴식을 취해도 좋습니다.";
+
+      const topTasks = sortedTasks().filter(t => !t.done).slice(0, 3);
+      $("#topTasks").innerHTML = topTasks.length ? topTasks.map(t => renderTaskCard(t, true)).join("") : `<div class="empty">오늘 처리할 남은 일이 없습니다.</div>`;
+      $("#allTasks").innerHTML = tasks.length ? sortedTasks().map(t => renderTaskCard(t)).join("") : `<div class="empty">아직 등록된 할 일이 없습니다.</div>`;
+
+      const options = todo.length
+        ? todo.map(t => `<option value="${t.id}">${escapeHTML(t.title)}</option>`).join("")
+        : `<option value="">완료할 일이 없습니다</option>`;
+      $("#focusTaskSelect").innerHTML = options;
+      renderMonthlyView();
+    };
+
+    const generatePlan = () => {
+      const available = Number($("#availableInput").value);
+      const energy = $("#energyInput").value;
+      let remain = available;
+      let candidates = sortedTasks().filter(t => !t.done);
+
+      if (energy === "low") candidates = [...candidates].sort((a, b) => a.minutes - b.minutes || priorityScore(b) - priorityScore(a));
+      if (energy === "high") candidates = [...candidates].sort((a, b) => priorityScore(b) - priorityScore(a));
+
+      const blocks = [];
+      if (!candidates.length) {
+        blocks.push({ type: "break", title: "오늘은 회복 루틴", minutes: 20, desc: "남은 할 일이 없으므로 가벼운 정리와 휴식을 추천합니다." });
+      } else {
+        blocks.push({ type: "work", title: "5분 준비", minutes: 5, desc: "책상 정리, 필요한 파일 열기, 오늘 목표 한 줄 쓰기" });
+        remain -= 5;
+        for (const task of candidates) {
+          if (remain <= 0) break;
+          const blockMin = Math.min(Number(task.minutes), remain >= 55 ? 50 : remain);
+          if (blockMin < 10) break;
+          blocks.push({ type: "work", title: task.title, minutes: blockMin, desc: `${deadlineText(task)} · 중요도 ${task.importance} · 우선순위 ${priorityScore(task)}점` });
+          remain -= blockMin;
+          if (remain >= 10) {
+            blocks.push({ type: "break", title: "짧은 휴식", minutes: 5, desc: "물 마시기, 스트레칭, 휴대폰 알림 확인 금지" });
+            remain -= 5;
+          }
+        }
+        if (remain >= 10) blocks.push({ type: "work", title: "마무리 정리", minutes: remain, desc: "오늘 한 내용 체크, 다음 행동 1개 메모" });
+      }
+
+      currentPlanText = blocks.map((b, idx) => `${idx + 1}. ${b.title} - ${b.minutes}분\n   ${b.desc}`).join("\n");
+      $("#planResult").innerHTML = blocks.map((b, idx) => `
+        <div class="plan-card ${b.type === "break" ? "break" : ""}">
+          <strong>${idx + 1}. ${escapeHTML(b.title)} · ${b.minutes}분</strong>
+          <p>${escapeHTML(b.desc)}</p>
+        </div>
+      `).join("");
+      showToast("오늘 계획을 생성했습니다.");
+    };
+
+    const renderTimer = () => {
+      const min = String(Math.floor(timer.remaining / 60)).padStart(2, "0");
+      const sec = String(timer.remaining % 60).padStart(2, "0");
+      $("#timerText").textContent = `${min}:${sec}`;
+      $("#timerMode").textContent = timer.mode === "focus" ? "집중 모드" : "휴식 모드";
+      const progress = Math.max(0, Math.min(100, ((timer.total - timer.remaining) / timer.total) * 100));
+      $("#timerCircle").style.setProperty("--timer-progress", `${progress}%`);
+    };
+
+    const startTimer = () => {
+      if (timer.running) return;
+      timer.running = true;
+      timer.interval = setInterval(() => {
+        timer.remaining -= 1;
+        if (timer.remaining <= 0) {
+          clearInterval(timer.interval);
+          timer.running = false;
+          if (timer.mode === "focus") {
+            timer.mode = "break";
+            timer.total = timer.breakMin * 60;
+            timer.remaining = timer.total;
+            showToast("집중 완료! 휴식 시간입니다.");
+          } else {
+            timer.mode = "focus";
+            timer.total = timer.focusMin * 60;
+            timer.remaining = timer.total;
+            showToast("휴식 완료! 다시 시작해 볼까요?");
+          }
+        }
+        renderTimer();
+      }, 1000);
+    };
+
+    const pauseTimer = () => {
+      clearInterval(timer.interval);
+      timer.running = false;
+      showToast("타이머를 멈췄습니다.");
+    };
+
+    const resetTimer = () => {
+      pauseTimer();
+      timer.mode = "focus";
+      timer.total = timer.focusMin * 60;
+      timer.remaining = timer.total;
+      renderTimer();
+    };
+
+    const applyTimer = () => {
+      timer.focusMin = Math.max(5, Math.min(90, Number($("#focusMinutesInput").value) || 25));
+      timer.breakMin = Math.max(1, Math.min(30, Number($("#breakMinutesInput").value) || 5));
+      resetTimer();
+      showToast("타이머 시간을 적용했습니다.");
+    };
+
+    const completeFocusTask = () => {
+      const id = $("#focusTaskSelect").value;
+      if (!id) return showToast("완료할 일이 없습니다.");
+      tasks = tasks.map(t => t.id === id ? { ...t, done: true } : t);
+      saveTasks();
+      renderTasks();
+      showToast("집중한 일을 완료 처리했습니다.");
+    };
+
+    const downloadText = (filename, text) => {
+      const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+
+    const init = () => {
+      if (theme === "dark") document.body.classList.add("dark");
+      $("#themeBtn").textContent = theme === "dark" ? "☀️ 라이트모드" : "🌙 다크모드";
+
+      $("#todayText").textContent = today.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric", weekday: "short" });
+      $("#heroDate").textContent = today.toLocaleDateString("ko-KR", { year: "numeric", month: "long", day: "numeric" });
+      $("#deadlineInput").value = addDays(3);
+
+      $$(".nav button").forEach(btn => {
+        btn.addEventListener("click", () => {
+          $$(".nav button").forEach(b => b.classList.remove("active"));
+          $$(".page").forEach(p => p.classList.remove("active"));
+          btn.classList.add("active");
+          $("#" + btn.dataset.page).classList.add("active");
+          if (btn.dataset.page === "monthly") renderMonthlyView();
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      });
+
+      $("#prevMonthBtn").addEventListener("click", () => {
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+        renderMonthlyView();
+      });
+      $("#nextMonthBtn").addEventListener("click", () => {
+        currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1);
+        renderMonthlyView();
+      });
+      $("#monthPicker").addEventListener("input", (e) => {
+        setCurrentMonthFromInput(e.target.value);
+        renderMonthlyView();
+      });
+
+      $("#themeBtn").addEventListener("click", () => {
+        theme = theme === "dark" ? "light" : "dark";
+        document.body.classList.toggle("dark", theme === "dark");
+        $("#themeBtn").textContent = theme === "dark" ? "☀️ 라이트모드" : "🌙 다크모드";
+        saveTheme();
+      });
+
+      $("#resetBtn").addEventListener("click", () => {
+        if (!confirm("예시 데이터를 포함해 처음 상태로 되돌릴까요?")) return;
+        localStorage.removeItem("deadlineBuddyTasks");
+        tasks = defaultTasks;
+        saveTasks();
+        renderTasks();
+        generatePlan();
+        showToast("초기화했습니다.");
+      });
+
+      $("#importanceInput").addEventListener("input", (e) => $("#importanceLabel").textContent = e.target.value);
+
+      $("#taskForm").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const task = {
+          id: crypto.randomUUID(),
+          title: $("#titleInput").value.trim(),
+          category: $("#categoryInput").value,
+          deadline: $("#deadlineInput").value,
+          importance: Number($("#importanceInput").value),
+          minutes: Number($("#minutesInput").value) || 60,
+          memo: $("#memoInput").value.trim(),
+          done: false
+        };
+        if (!task.title || !task.deadline) return;
+        tasks.push(task);
+        saveTasks();
+        e.target.reset();
+        $("#deadlineInput").value = addDays(3);
+        $("#importanceInput").value = 3;
+        $("#importanceLabel").textContent = "3";
+        renderTasks();
+        showToast("할 일을 추가했습니다.");
+      });
+
+      document.body.addEventListener("click", (e) => {
+        const btn = e.target.closest("button[data-action]");
+        if (!btn) return;
+        const id = btn.dataset.id;
+        if (btn.dataset.action === "toggle") {
+          tasks = tasks.map(t => t.id === id ? { ...t, done: !t.done } : t);
+          showToast("상태를 변경했습니다.");
+        }
+        if (btn.dataset.action === "delete") {
+          tasks = tasks.filter(t => t.id !== id);
+          showToast("삭제했습니다.");
+        }
+        saveTasks();
+        renderTasks();
+      });
+
+      $("#makePlanBtn").addEventListener("click", generatePlan);
+      $("#copyPlanBtn").addEventListener("click", async () => {
+        if (!currentPlanText) generatePlan();
+        await navigator.clipboard.writeText(currentPlanText);
+        showToast("계획을 복사했습니다.");
+      });
+      $("#downloadPlanBtn").addEventListener("click", () => {
+        if (!currentPlanText) generatePlan();
+        downloadText("today-plan.txt", currentPlanText);
+      });
+
+      $("#startTimerBtn").addEventListener("click", startTimer);
+      $("#pauseTimerBtn").addEventListener("click", pauseTimer);
+      $("#resetTimerBtn").addEventListener("click", resetTimer);
+      $("#applyTimerBtn").addEventListener("click", applyTimer);
+      $("#completeFocusBtn").addEventListener("click", completeFocusTask);
+      $("#breakTipBtn").addEventListener("click", () => {
+        const tips = [
+          "자리에서 일어나 목과 어깨를 30초씩 돌려보세요.",
+          "물을 한 컵 마시고 창밖을 1분간 바라보세요.",
+          "다음 집중에서 할 첫 행동 하나만 메모해 보세요.",
+          "휴식 중에는 SNS보다 눈 감고 호흡 10번이 더 효과적입니다."
+        ];
+        $("#breakTip").textContent = tips[Math.floor(Math.random() * tips.length)];
+      });
+
+      renderTasks();
+      generatePlan();
+      renderTimer();
+    };
+
+    init();
+  </script>
+</body>
+</html>
